@@ -10,7 +10,7 @@ def print_time():
     print('----------{}----------\n'.format(time.strftime("%Y-%m-%d %X", time.localtime())))
 
 def load_word2vector(embedding_dim, embedding_dim_pos, train_file_path, embedding_path):
-    print('load embedding...\n')
+    print('load embedding...')
 
     words = []
     with open(train_file_path, 'r') as f1:
@@ -69,7 +69,7 @@ def load_data(input_file, word_idx, max_doc_len = 75, max_sen_len = 45):
             for i in range(d_len):
                 y_po[i][int(i+1 in pos)] = 1
                 y_ca[i][int(i+1 in cause)] = 1
-                words = f1.readline().strip().split(',')[-1]
+                words = f1.readline().strip().split(',')[-1]  # get clause
                 sen_len_tmp[i] = min(len(words.split()), max_sen_len)
                 for j, word in enumerate(words.split()):
                     if j >= max_sen_len:
@@ -84,25 +84,23 @@ def load_data(input_file, word_idx, max_doc_len = 75, max_sen_len = 45):
 
         y_position, y_cause, x, sen_len, doc_len = map(np.array, [y_position, y_cause, x, sen_len, doc_len])
         for var in ['y_position', 'y_cause', 'x', 'sen_len', 'doc_len']:
-            print('{}.shape {}'.format(var, eval(var).shape))
-        print('n_cut {}'.format(n_cut))
+            print('{}.shape: {}'.format(var, eval(var).shape))
+        print('n_cut: {}'.format(n_cut))
         print('load data done!\n')
         return doc_id, y_position, y_cause, y_pairs, x, sen_len, doc_len
 
 
 if __name__ == '__main__':
     print_time()
-    embedding_dim = '200'
-    embedding_dim_pos = '50'
+    embedding_dim = 200
+    embedding_dim_pos = 50
     train_file_path = '../data_combine/clause_keywords.csv'
     embedding_path = '../data/w2v_200.txt'
 
-    # words = []
-    # with open(train_file_path, 'r') as f1:
-    #     for line in f1.readlines():
-    #         line = line.strip().split(',')
-    #         emotion, clause = line[2], line[-1]
-    #         words.extend([emotion] + clause.split())
-    #     words = set(words)  # redupliction removing
-    #     word_idx = dict((c, k + 1) for k, c in enumerate(words))  # each word and its position
-    #     word_idx_rev = dict((k + 1, c) for k, c in enumerate(words))
+    word_idx_rev, word_id_mapping, word_embedding, pos_embedding = load_word2vector(embedding_dim,
+                                                                            embedding_dim_pos,
+                                                                            train_file_path,
+                                                                            embedding_path)
+    print(word_id_mapping)
+    tr_doc_id, tr_y_position, tr_y_cause, tr_y_pairs, tr_x, tr_sen_len, tr_doc_len = load_data(
+        '../data_combine/fold1_train.txt', word_id_mapping, 75, 30)
