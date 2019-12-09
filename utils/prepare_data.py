@@ -89,6 +89,68 @@ def load_data(input_file, word_idx, max_doc_len = 75, max_sen_len = 45):
         print('load data done!\n')
         return doc_id, y_position, y_cause, y_pairs, x, sen_len, doc_len
 
+def load_data_2nd_stepload_data_2nd_step(input_file, word_idx, max_doc_len = 75, max_sen_len = 45):
+    print('load data_file: {}'.format(input_file))
+    pair_id_all, pair_id, y, x, sen_len, distance = [], [], [], [], [], []
+
+    n_cut = 0
+    with open(input_file, 'r') as f1:
+        while True:
+            line = f1.readline()
+            if line == '': break
+            line = line.strip().split()
+            doc_id = int(line[0])
+            d_len = int(line[1])
+            pairs = eval(f1.readline().strip())
+            pair_id_all.extend([doc_id * 10000 + p[0] * 100 + p[1] for p in pairs])
+            sen_len_tmp, x_tmp = np.zeros(max_doc_len, dtype=np.int32), np.zeros((max_doc_len, max_sen_len),
+                                                                                 dtype=np.int32)
+            pos_list, cause_list = [], []
+            for i in range(d_len):
+                line = f1.readline().strip().split(',')
+                if int(line[1].strip()) > 0:
+                    pos_list.append(i + 1)
+                if int(line[2].strip()) > 0:
+                    cause_list.append(i + 1)
+                words = line[-1]
+                sen_len_tmp[i] = min(len(words.split()), max_sen_len)
+                for j, word in enumerate(words.split()):
+                    if j >= max_sen_len:
+                        n_cut += 1
+                        break
+                    x_tmp[i][j] = int(word_idx[word])
+            for i in pos_list:
+                for j in cause_list:
+                    pair_id_cur = doc_id * 10000 + i * 100 + j
+                    pair_id.append(pair_id_cur)
+                    y.append([0, 1] if pair_id_cur in pair_id_all else [1, 0])
+                    x.append([x_tmp[i - 1], x_tmp[j - 1]])
+                    sen_len.append([sen_len_tmp[i - 1], sen_len_tmp[j - 1]])
+                    distance.append(j - i + 100)
+        y, x, sen_len, distance = map(np.array, [y, x, sen_len, distance])
+        for var in ['y', 'x', 'sen_len', 'distance']:
+            print('{}.shape {}'.format(var, eval(var).shape))
+        print('n_cut {}, (y-negative, y-positive): {}'.format(n_cut, y.sum(axis=0)))
+        print('load data done!\n')
+        return pair_id_all, pair_id, y, x, sen_len, distance
+
+def acc_prf(pred_y, true_y, doc_len, average='binary'):
+    tmp1, tmp2 = [], []
+    for i in range(pred_y.shape[0]):
+        for j in range(doc_len[i]):
+            tmp1.append(pred_y[i][j])
+            tmp2.append(true_y[i][j])
+    y_pred, y_true = np.array(tmp1), np.array(tmp2)
+    acc = precision_score(y_true, y_pred, average='micro')
+    p = precision_score(y_true, y_pred, average=average)
+    r = recall_score(y_true, y_pred, average=average)
+    f1 = f1_score(y_true, y_pred, average=average)
+    return acc, p, r, f1
+
+
+
+
+
 
 if __name__ == '__main__':
     print_time()
