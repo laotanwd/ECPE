@@ -89,7 +89,7 @@ def load_data(input_file, word_idx, max_doc_len = 75, max_sen_len = 45):
         print('load data done!\n')
         return doc_id, y_position, y_cause, y_pairs, x, sen_len, doc_len
 
-def load_data_2nd_stepload_data_2nd_step(input_file, word_idx, max_doc_len = 75, max_sen_len = 45):
+def load_data_2nd_step(input_file, word_idx, max_doc_len = 75, max_sen_len = 45):  # QQ
     print('load data_file: {}'.format(input_file))
     pair_id_all, pair_id, y, x, sen_len, distance = [], [], [], [], [], []
 
@@ -101,16 +101,31 @@ def load_data_2nd_stepload_data_2nd_step(input_file, word_idx, max_doc_len = 75,
             line = line.strip().split()
             doc_id = int(line[0])
             d_len = int(line[1])
-            pairs = eval(f1.readline().strip())
-            pair_id_all.extend([doc_id * 10000 + p[0] * 100 + p[1] for p in pairs])
+            pairs = eval(f1.readline().strip())  # Q3
+
+            try:
+                pair_id_all.extend([doc_id * 10000 + p[0] * 100 + p[1] for p in pairs])  # eg. 3 15 (12,12) -> 3|12|12
+            except:
+                print('only one pair')
+                pair_id_all.extend([doc_id * 10000 + int(pairs[0]) * 100 + int(pairs[1])])  # eg. 3 15 (12,12) -> 3|12|12
+            # print(pairs)
+            # if len(pairs) == 2:
+            #     print(pairs)
+            #     pair_id_all.extend([doc_id * 10000 + int(pairs[0]) * 100 + int(pairs[1])])  # eg. 3 15 (12,12) -> 3|12|12
+            # else:
+            #     pair_id_all.extend([doc_id * 10000 + p[0] * 100 + p[1] for p in pairs])  # eg. 3 15 (12,12) -> 3|12|12
+            print(pair_id_all)
+
+
             sen_len_tmp, x_tmp = np.zeros(max_doc_len, dtype=np.int32), np.zeros((max_doc_len, max_sen_len),
                                                                                  dtype=np.int32)
             pos_list, cause_list = [], []
             for i in range(d_len):
                 line = f1.readline().strip().split(',')
-                if int(line[1].strip()) > 0:
+                print(line)
+                if line[1].strip() != 'null':  # if int(line[1].strip()) > 0:
                     pos_list.append(i + 1)
-                if int(line[2].strip()) > 0:
+                if line[2].strip() != 'null':  # if int(line[2].strip()) > 0:
                     cause_list.append(i + 1)
                 words = line[-1]
                 sen_len_tmp[i] = min(len(words.split()), max_sen_len)
@@ -147,6 +162,13 @@ def acc_prf(pred_y, true_y, doc_len, average='binary'):
     f1 = f1_score(y_true, y_pred, average=average)
     return acc, p, r, f1
 
+def prf_2nd_step(pair_id_all, pair_id, pred_y, fold = 0, save_dir = ''):
+   pair_id_filtered = []
+   for i in range(len(pair_id)):
+       if pred_y[i]:
+           pair_id_filtered.append(pair_id[i])
+
+
 
 
 
@@ -163,6 +185,9 @@ if __name__ == '__main__':
                                                                             embedding_dim_pos,
                                                                             train_file_path,
                                                                             embedding_path)
-    print(word_id_mapping)
-    tr_doc_id, tr_y_position, tr_y_cause, tr_y_pairs, tr_x, tr_sen_len, tr_doc_len = load_data(
-        '../data_combine/fold1_train.txt', word_id_mapping, 75, 30)
+    # print(word_id_mapping)
+    # tr_doc_id, tr_y_position, tr_y_cause, tr_y_pairs, tr_x, tr_sen_len, tr_doc_len = load_data(
+    #     '../data_combine/fold1_train.txt', word_id_mapping, 75, 30)
+
+    te_pair_id_all, te_pair_id, te_y, te_x, te_sen_len, te_distance = load_data_2nd_step('../data_combine/fold1_test.txt',
+                                                                                         word_id_mapping)
